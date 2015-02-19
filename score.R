@@ -18,7 +18,7 @@ score = function(data, output){
   
   S = cov(Xtest)
   
-    f1=log(det(Omega))
+    f1=determinant(Omega,logarithm=TRUE)$modulus
     f2=sum(diag(S%*%Omega))
     loglik=f1-f2
 

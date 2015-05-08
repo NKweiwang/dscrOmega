@@ -29,13 +29,45 @@ In Gaussian graphical model
 $$  
 (i,j) \in {Edges} \Leftrightarrow \Omega_{ij} \neq  0
 $$
+$$  
+(i,j) \notin {Edges} \Leftrightarrow \Omega_{ij} =  0
+$$
+
 Conditionally independent
 $$
 i \perp j | all \, others \Leftrightarrow \Omega_{ij} = 0 
 $$
 $$
-i \perp j | all \, others \Leftrightarrow (i,j) \in {Edges}
+i \perp j | all \, others \Leftrightarrow (i,j) \notin {Edges}
 $$
+
+## gene network
+
+```{r, echo=FALSE, warning=FALSE}
+library("igraph")
+get_Omega=function(F,P,K){
+Lambda_L = diag(K)
+Psi = diag(P)
+invPsi = diag(P)
+Omega  = invPsi - invPsi %*% t(F) %*% solve(Lambda_L + F %*% invPsi %*% t(F)) %*% F %*% invPsi
+return(Omega)
+}
+
+F = array(0, dim=c(2,3))
+F[1,1] = 1
+F[1,2] = 1
+F[2,1] = 1
+F[2,3] = 1
+
+
+Omega = get_Omega(F,P = 3, K = 2)
+#Omega
+data = 1 * (abs(Omega) > 0.125)
+g=graph.adjacency(data, mode="undirected",weighted=NULL,diag=FALSE) 
+
+plot.igraph(g, vertex.label=c("TF","G1","G2"),vertex.color=c("skyblue","skyblue","skyblue"))
+
+```
 
 ## Difficulty (problems never sleep)
 
@@ -61,6 +93,16 @@ When P (number of genes) larger than n (sample size)
 - sparse assumption on precision matrix: $\Sigma^{-1}$
 
 - diagonal matrix + low rank matrix
+
+## Sparse Estimation
+
+- Glasso: Graphical Lasso
+
+- Clime: Constrained $L_1$ Minimization
+
+- Tiger: Tuning-Insensitive Approach for Optimally Estimating Gaussian Graphical Models
+
+- PCS: Partial Correlation Screening
 
 ## (problems couldn't fall asleep again)
 
@@ -100,15 +142,6 @@ plot.igraph(g, vertex.label=c("G1","G2","G3","G4"),vertex.color=c("skyblue","sky
 
 ```
 
-## Sparse Estimation
-
-- Glasso: Graphical Lasso
-
-- Clime: Constrained $L_1$ Minimization
-
-- Tiger: Tuning-Insensitive Approach for Optimally Estimating Gaussian Graphical Models
-
-- PCS: Partial Correlation Screening
 
 ## Factor Model
 

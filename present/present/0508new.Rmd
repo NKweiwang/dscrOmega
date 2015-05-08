@@ -33,6 +33,9 @@ Conditionally independent
 $$
 i \perp j | all \, others \Leftrightarrow \Omega_{ij} = 0 
 $$
+$$
+i \perp j | all \, others \Leftrightarrow (i,j) \in {Edges}
+$$
 
 ## Difficulty (problems never sleep)
 

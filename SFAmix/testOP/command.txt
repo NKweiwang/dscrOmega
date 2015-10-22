@@ -1,0 +1,4 @@
+./SFAmix --nf 50 --y ./lung15K.txt --out testOP --sep space 
+
+Y_TMP has dimension of 320 by 1500
+

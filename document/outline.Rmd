@@ -1,0 +1,114 @@
+---
+title: "dscr-Omega"
+output: pdf_document
+---
+
+In many cases, we need estimation of precision matrix to get calculate the likelihood. Since in the real data, we always meet this situation that sample size is around few hundreds and much smaller than number of varibles which is around ten to hundred of thousands. We need assumptions to make constraint on the number of unknown parameters to estimate. There are two possible assumptions: 
+
+\begin{itemize}
+\item sparse assumption on precision matrix: $\Omega$
+\item diagonal matrix + low rank matrix 
+\end{itemize}
+
+Sparse estimation:
+
+\begin{itemize}
+\item Glasso
+$$
+min: log det (\Omega) - trace (\Sigma_n \Omega) - \rho ||\Omega||_{1}
+$$
+and then convert to a lasso problem for each row
+
+\item Clime
+$$
+min: ||\Omega||_1 
+$$
+subject to 
+$$
+||\Sigma_n \Omega - I||_{\infty}
+$$
+also use sparse estimation of each row and combine them together
+
+\item PCS \& Tiger
+$$
+X_j = \sum_{i \neq j} \beta_i X_i + V_j
+$$
+
+$$
+\beta_i = - \Omega_{ij}/\Omega_{jj}; \, V_j \sim N(0,\frac{1}{\Omega_{jj}})
+$$
+$i,j = 1 \cdots P$, $X$ is the n by P data matrix.
+PCS screening these partial correlations, Tiger minimize the sum square of prediction error with sparsity constraint.
+\end{itemize}
+
+One of the limitation of sparse assumption of precision matrix is that the marginal precision matrix is not sparse when the joint precision matrix is sparse
+
+$$
+(\Sigma_O)^{-1} = \Omega_O - \Omega_{OH} \Omega_H^{-1}\Omega_{HO}
+$$
+
+where O stand for observed, H means hidden, and the subscript means the corresponding partition of the $\Omega$ matrix.
+
+Instead of starting from the precision matrix itself with sparsity assumption, we can start from the data and try to learn the data well, and then turn to the precision matrix. We first put the data into a low-dimension space which hopefully could capture all the variation information in this low-dimensional space in order to estimate the covariance matrix and precision matrix. We use factor model which is easy to extend in dimension to model the expression level data. 
+
+\begin{eqnarray}
+X_{n \times P} = F_{n \times K} L_{K \times P} + E_{n \times P}
+\end{eqnarray}
+where $X$ is gene expression level matrix, $F$ is factor matrix, $L$ is loading matrix and $E_{\cdot i} \sim N(0,\Psi)$
+
+For individual i:
+$$
+X_{i 1} = L_{11} F_{i 1} + L_{21} F_{i 2} + \cdots + L_{K1} F_{i K} + E_{i 1}
+$$
+$$
+X_{i 2} = L_{12} F_{i 1} + L_{22} F_{i 2} + \cdots + L_{K2} F_{i K} + E_{i 2}
+$$
+$$
+X_{i P} = L_{1P} F_{i 1} + L_{2P} F_{i 2} + \cdots + L_{KP} F_{i K} + E_{i P}
+$$
+$F_{ik}$ stands for influence of factor k on individual i, $L_{k,j}$ stands for influence of factor k on gene j.
+
+The estimation of covariance matrix is 
+
+\begin{eqnarray}
+\hat{\Sigma} = \Psi + L^T \Lambda_F L
+\end{eqnarray}
+
+where $\Lambda_F=\frac{1}{n}F^TF$
+
+For the precision matrix:
+
+\begin{eqnarray}
+\hat{\Omega} & = &  \hat{\Sigma}^{-1} \\
+ & = & \Psi^{-1} - \Psi^{-1}L^T(\Lambda_F+L\Psi^{-1}L^T)^{-1}L\Psi^{-1}
+\end{eqnarray}
+
+- Both $\hat{\Sigma}$ and $\hat{\Omega}$ are diagonal plus low rank.
+
+- Inverse $\hat{\Sigma}$ is not computationally expensive.
+
+- Model is statistically interpretable.
+
+Comparison criterion:
+
+All the scores we use are not depend on the true value.
+
+Likelihood:
+$$
+log det (\Omega) - trace (\Sigma_n \Omega) = - E_p log(p/q) + C
+$$
+F-norm of error:
+$$
+\frac{ \partial  }{\partial \Omega} E_p ||\nabla logp - \nabla log q||_2^2 = \frac{1}{2}\Sigma_n\Omega + \frac{1}{2}\Omega\Sigma_n - I
+$$
+prediction error
+$$
+\sum_j  (X_j - (\sum_{i \neq j} - \Omega_{ij}/\Omega_{jj} X_i))^2
+$$
+this is for one observation, we have n observation, so just add them up.
+
+
+
+
+
+

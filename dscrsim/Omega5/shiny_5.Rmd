@@ -11,7 +11,7 @@ library(ggplot2)
 library(dscr)
 library(dplyr)
 load("res_5all.Rdata")
-res=res[[2]]
+res=res[[3]]
 scenario_names = as.character(unique(res$scenario))
 method_names = as.character(unique(res$method))
 numeric_criteria = names(res)[unlist(lapply(res,is.numeric))]

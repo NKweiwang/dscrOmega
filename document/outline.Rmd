@@ -1,46 +1,119 @@
 ---
-title: "dscr-Omega"
+title: "dsc-Omega"
 output: pdf_document
 ---
 
-In many cases, we need estimation of precision matrix to get calculate the likelihood. Since in the real data, we always meet this situation that sample size is around few hundreds and much smaller than number of varibles which is around ten to hundred of thousands. We need assumptions to make constraint on the number of unknown parameters to estimate. There are two possible assumptions: 
+\section{1. Motivation}
+
+Estimation for covariance matrix and its inverse is widely useful in areas, such as multiple test, discriminant analysis and graphical model.
+In our multiple test procedure, we need estimation of precision matrix to get calculate the likelihood based on multivariate normal assumption. In the real data, we always meet this situation that sample size is around few hundreds and much smaller than number of variables which is around ten to hundred of thousands. And for Gaussian graphical model, each edge corresponding to one element in the precision matrix representing the conditional correlation. In this case the dimension $P$ is much larger then sample size $N$.
+For convariance matrix, a natural estimation is sample covariance matrix.
+\begin{eqnarray}
+\hat{\Sigma} = \frac{1}{n}X^TX
+\end{eqnarray}
+This is singular when $N$ is smaller than $P$. We don't have capability to use $N$ samples to estimate $\frac{P(P+1)}{2}$ parameters. Some special structures of convariance matrix or precision matrix need to be imposed. Assumptions that makes the degree of freedom of parameters smaller than sample size actually provides constraint on number of unknown parameters to estimate. Then we are able to estimate the covariance matrix. 
+\subsection{Different Assumptions}
+There are many possible assumptions to consider. We just consider two of them which are more reasonable to our data set.In the setting that $P$ is much larger than $N$, the accuracy of estimation of covariance matrix and precision matrix and the computational cost are challenges in practical studies. 
 
 \begin{itemize}
 \item sparse assumption on precision matrix: $\Omega$
 \item diagonal matrix + low rank matrix 
 \end{itemize}
 
-Sparse estimation:
+We denote the covariance matrix as $\Sigma$ and precision matrix as $\Omega$.
+
+The sparse assumption is popular for Gaussian graphical model and there are many methods based on this assumption. This assumption assumes edges of the undirected graph are sparse, which means that just some of the nodes are connected by edges and many of them are disconnected. As we known,
+\begin{eqnarray}
+i \longleftrightarrow j \iff \Omega_{ij}\neq 0
+\end{eqnarray}
+which means that node i and node j are connected is equivalent to $\Omega_{ij}\neq 0$ for all i and j. So in Gaussian graphical model, precision matrix encode the graph. To assume the sparsity of graph is equivalent to assume sparsity of $\Omega$. In gene expression data, sparsity assumption in $\Omega$ introduce the sparsity of conditional independence among different pair of genes. 
+
+In gene expression data, gene can not function alone, instead, genes tend to work together to manifest biological function. Imagine we can observe the latent factor (unmeasured, unobserved, confounding factor) in gene expression data, such as bath effects, latent population structure, biological covariates and transcript factor, then this provides a structure of expression data. Genes are co-regulated by these factors and the influence of factors on all genes are sparse sometimes. Usually we impose sparsity on factor loadings to facilitate kind of clustering information: gene with zero loadings not belongs to the "gene cluster" corresponding to specific factor. The factors are sparse sometimes or dense sometimes.
+
+Here we can also divide these two type of sparsity into two categories: sparsity in edges and sparsity in factors.
+
+\subsection{Dynamic statistical comparisons}
+It is hard to say which assumption is more reasonable for our data. We need a comprehensive comparison to different methods on our data to test which one is best to apply. "Dynamic statistical comparisons is an attempt to change the way that researchers perform statistical comparisons of methods. When a new statistical method is developed, it is almost inevitable that it will be useful to compare it to other methods for tackling the same problem. However, the way these comparisons are currently (usually) done is suboptimal in so many ways. First, comparisons are usually performed by the research group that developed one of the methods, which almost inevitably favors that method. Furthermore, performing these kinds of comparisons is incredibly time-consuming, requiring careful familiarization with software implementing the methods, and the creation of pipelines and scripts for running and comparing them.", as Matthew  mentions this project in his github repo, "And in fast-moving fields new methods or software updates appear so frequently that comparisons are out of date before they even appear. In summary, the current system results in a large amount of wasted effort, with multiple groups performing redundant and sub-optimal comparisons. A DSC is a public Internet repository that allows methods to be compared with one another in a reproducible and easily-extensible way." We will use dsc procedure to compare different methods to estimate covariance matrix and precision matrix.
+
+\section{2. Datamakers}
+In one dsc object, the main parts are datamakers, methods and scores. Datamakers contain all scenarios considered by users. In our dsc-Omega, we focus on covariance matrix and precision matrix. So the different scenarios are set based on the structure of covariance matrix. There are three scenarios included in our simulations: identity, toeplitz and real data case. Datamakers also provide meta which can be used to compare the performance under different scores. The meta can be the real value or test data set. In this project, we generate simulation data and divide it into two groups: training data and testing data. The training data set is used as input to all methods and testing data is used as meta in comparison based on different scores. 
+
+\section{3. Methods}
+
+We consider the comparison of methods based on those two types of assumptions we mentioned above. Sparse graph assumption is popular and there are many methods in the literature. We choose some typical methods to compare.
+
+\subsection{Penalize Likelihood Method}
+Penalized likelihood method is one of the most widely used approaches. We pick glasso as an example.
 
 \begin{itemize}
 \item Glasso
-$$
-min: log det (\Omega) - trace (\Sigma_n \Omega) - \rho ||\Omega||_{1}
-$$
-and then convert to a lasso problem for each row
+\end{itemize}
+\begin{eqnarray}
+\hat{\Omega}= argmin\{ trace (\Sigma_n \Omega) - \log |\Omega| + \rho ||\Omega||_{1} \}
+\end{eqnarray}
+where $\Sigma_n = \frac{1}{n}X^TX$ which is sample covariance matrix. Glasso converts this problem to multiple lasso problem for each column.
 
+\subsection{Column by Column Methods}
+Some methods impose sparsity directly on columns of $\Omega$.
+\begin{itemize}
 \item Clime
+\end{itemize}
 $$
 min: ||\Omega||_1 
 $$
 subject to 
 $$
-||\Sigma_n \Omega - I||_{\infty}
+||\Sigma_n \Omega - I||_{\infty} \leq \lambda_n
 $$
-also use sparse estimation of each row and combine them together
+And then decompose this convex problem into $P$ vector minimization problems.
+\begin{eqnarray}
+min: ||\Omega_{.j}||_1
+\end{eqnarray}
+subject to 
+\begin{eqnarray}
+|\Sigma_n \Omega_{.j} - e_j|_{\infty} \leq \lambda_n
+\end{eqnarray}
+where $e_j$ is vector with $j^{th}$ element being 1 and others being 0. And then make the estimation symmetric. The authors prove that the symmetric $\hat{\Omega}$ from clime is asymptotically positive definite. Similar idea is graphical Dantzig selector by Yuan(2010).
 
-\item PCS \& Tiger
-$$
+Other methods estimate $\Omega$ using column by column regression. This kind methods are more computationally feasible. Column by column method use the relationship conditional distribution of multivariate normal and linear regression to infer the relationship between elements in precision matrix and partial correlation.
+\begin{eqnarray}
 X_j = \sum_{i \neq j} \beta_i X_i + V_j
-$$
-
-$$
+\end{eqnarray}
+\begin{eqnarray}
 \beta_i = - \Omega_{ij}/\Omega_{jj}; \, V_j \sim N(0,\frac{1}{\Omega_{jj}})
-$$
-$i,j = 1 \cdots P$, $X$ is the n by P data matrix.
-PCS screening these partial correlations, Tiger minimize the sum square of prediction error with sparsity constraint.
-\end{itemize}
+\end{eqnarray}
+$i,j = 1 \cdots P$, $X$ is the N by P data matrix.
 
+Meinshausen, N. and Buhlmann, P(2006) provide a method using lasso for each column and make it symmetric. 
+
+Partial Correlation Screening is also a column by column method, which use partial correlation includes the node one by one with a clean step after.
+
+\subsection{Tuning Insensitive Methods}
+The methods mentioned above depend on tuning parameters to control bias variance trade-off. Although they provide theoretical choice of the parameters, it is hard to apply those in real data. It is because theoretical tuning parameters always depend on the true value of $\Omega$.
+\begin{itemize}
+\item Tiger
+\end{itemize}
+Which is also a column by column method by asymptotically tuning-free. For each column, it uses SQRT-lasso
+\begin{eqnarray}
+\beta = argmin\{\frac{1}{n}||y-x\beta||_2 + \lambda||\beta||_1  \}
+\end{eqnarray}
+which is asymptotically tuning-free. And then make the $\hat{\Omega}$ symmetric.
+
+\subsection{Robust Methods}
+
+These methods extend the distribution to non-Gaussian case. Here we take nonparanormal family as example.
+
+For X, there exist functions $\{f_j\}_{j=1}^P$ such that 
+$$
+(f_1(X_{.1}),\cdots,f_P(X_{.P})) \sim N(\mu,\Sigma)
+$$
+and the authors show that
+\begin{eqnarray}
+\Sigma_{j,k} = 2 \sin (\frac{\pi}{6}\rho_{jk}) = \sin (\frac{\pi}{2}\tau_{jk})
+\end{eqnarray}
+
+we can use Spearman's rho and Kendall's tau pluged in the formula above. And than we can use Clime or Dantzig selector to find the estimation of $\Omega$
+\subsection{Factor Model}
 One of the limitation of sparse assumption of precision matrix is that the marginal precision matrix is not sparse when the joint precision matrix is sparse
 
 $$
@@ -89,19 +162,81 @@ For the precision matrix:
 
 - Model is statistically interpretable.
 
-Comparison criterion:
+Fan, J. et al(2008) use this model to estimate the covariance matrix using:
+\begin{eqnarray}
+\Sigma = L^T cov(F) L + \Sigma_{E}
+\end{eqnarray}
+They assume that $\Sigma_{E}$ is diagonal corresponding to "strict factor model". This might be restrictive in practice. The column of data matrix could be also correlated given factors, but the correlations are weak, since the low rank part is just an approximation of data matrix. It is possible to relax the diagonal assumption for $\Sigma_E$ to non-diagonal or sparse. Fan, j. et al(2015) provide a method to achieve this conditional sparsity (given factors). 
+
+- find loadings by solve a regression problem
+
+- apple threshold method on sample covariance matrix of residuals.
+
+Here we need $\hat{\Sigma}$ to be positive definite. There are two ways to make it. 
+
+- choose tuning parameters such that the smallest eigenvalue being positive.
+
+In practice we can use C-V.
+
+- "nearPD"
+
+which use 
+$$  min ||R^* - A||_F^2$$
+such that $$ A>0,diag(A)=I$$
+where $R^*$ is correlation matrix after threshold. But the sparsity can't be guaranteed
+
+- add one more constraint to the objective function 
+
+$$\hat{\Sigma} = argmin_{\lambda_{\min}(\Sigma)>\tau} \{||\Sigma - \Sigma_n||_F^2  + P(\sigma_{ij})\}$$
+
+The formula (11) is not identifiable if factor is latent and $\Sigma_E$ is not diagonal, where some assumption is needed.
+
+There are several methods for latent factor model, such as Robust PCA and Principal Orthogonal complEment Thresholding.
+
+For gene expression data, we know that genes cannot manifest their function alone and genes tend to work together to achieve biological functions instead. Some factors like transcription factor co-regulate a subnetwork of genes. "In molecular biology and genetics, a transcription factor (sometimes called a sequence-specific DNA-binding factor) is a protein that binds to specific DNA sequences, thereby controlling the rate of transcription of genetic information from DNA to messenger RNA. Transcription factors perform this function alone or with other proteins in a complex, by promoting (as an activator), or blocking (as a repressor) the recruitment of RNA polymerase (the enzyme that performs the transcription of genetic information from DNA to RNA) to specific genes" and "Transcription factors bind to either enhancer or promoter regions of DNA adjacent to the genes that they regulate. Depending on the transcription factor, the transcription of the adjacent gene is either up- or down-regulated. Transcription factors use a variety of mechanisms for the regulation of gene expression."- from wikipedia. And other latent factors also work in this way.
+
+The method we use for sparse factor analysis is SFAmix, which assumes that the loadings comes from mixture of dense and sparse prior called three parameters beta distribution.
+
+The hierarchical structure of elements of loading as follow:
+\begin{eqnarray}
+\gamma \sim G(f,\nu)\\
+\eta \sim G(e,\gamma)\\
+\tau_k \sim G(d,\eta)\\
+\phi_k \sim G(c,\tau_k)\\
+\delta_{jk} \sim G(b,\phi_k)\\
+\theta_{jk} \sim G(a,\delta_{jk})\\
+l_{jk} \sim N(0,\theta_{jk})
+\end{eqnarray}
+this is for sparsity of loading. The authors also consider the dense loading:
+\begin{eqnarray}
+\pi \sim Beta(\alpha,\beta)\\
+Z_k \sim Bern(\pi)\\
+l_{jk}|Z_k \sim \left\{
+  \begin{array}{lr}
+    P(l_{jk}|\theta_{jk},\delta_{jk},\phi_k)\\
+    P(l_jk|\phi_k) = N(0,\phi_k)
+  \end{array}
+\right.
+\end{eqnarray}
+
+\section{4. Output}
+The output here is just the estimation precision matrix from different methods under different scenarios.
+
+\section{5. Scores}
 
 All the scores we use are not depend on the true value.
 
-Likelihood:
+- Likelihood:
 $$
-log det (\Omega) - trace (\Sigma_n \Omega) = - E_p log(p/q) + C
+log |\Omega| - tr (\Sigma_n \Omega) 
 $$
-F-norm of error:
+
+- F-norm of error:
 $$
-\frac{ \partial  }{\partial \Omega} E_p ||\nabla logp - \nabla log q||_2^2 = \frac{1}{2}\Sigma_n\Omega + \frac{1}{2}\Omega\Sigma_n - I
+||\frac{1}{2}\Sigma_n\Omega + \frac{1}{2}\Omega\Sigma_n - I||_F
 $$
-prediction error
+which is first order condition for Hyvärinen score for Gaussian
+- prediction error
 $$
 \sum_j  (X_j - (\sum_{i \neq j} - \Omega_{ij}/\Omega_{jj} X_i))^2
 $$

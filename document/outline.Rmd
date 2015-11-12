@@ -219,6 +219,42 @@ l_{jk}|Z_k \sim \left\{
 \right.
 \end{eqnarray}
 
+\subsection{SParse $+$ Low-rank ASH?}
+
+\begin{eqnarray}
+X_{n \times P} = F_{n \times K} L_{K \times P} + E_{n \times P}
+\end{eqnarray}
+From the woodbury matrix identity:
+\begin{eqnarray}
+\hat{\Sigma} = \Psi + L^T \Lambda_F L
+\end{eqnarray}
+where $\Lambda_F=\frac{1}{n}F^TF$
+
+For the precision matrix:
+\begin{eqnarray}
+\hat{\Omega} & = &  \hat{\Sigma}^{-1} \\
+ & = & \Psi^{-1} - \Psi^{-1}L^T(\Lambda_F+L\Psi^{-1}L^T)^{-1}L\Psi^{-1}\\
+ & = & \Psi^{-1}_{P \times P} - \Psi^{-1}_{P\times P}L^T_{P\times K}(\Lambda_F+L\Psi^{-1}L^T)_{K \times K}^{-1}L_{K\times P}\Psi^{-1}_{P\times P}
+\end{eqnarray}
+We are interested in $\Psi^{-1}$ rather then $\Psi$ itself. We want the inverse of the corvariance matrix is sparse rather than itself. So $\Omega^{-1}$ is a sparse plus low rank matrix.
+
+\subsubsection{Algorithm}
+\begin{itemize}
+\item Step 1:\\
+Estimate $L$ and $F$
+\subitem using SFAmix FLASH or any sparse factor analysis.
+\item Step 2:\\
+$R = X - FL$ 
+\subitem $R$ is the residual matrix
+Given R: estimate $\hat{\Psi}^{-1}$
+\subitem apply estimation precision matrix method (Glasso, Tiger) to residual matrix $R$ 
+\subitem $\hat{\Psi}^{-1}$ is symmetric positive definite and truly sparse which make Glasso quick enough.
+\item Step 3:\\
+plug estimation in $\Omega = \Psi^{-1} - \Psi^{-1}L^T(\Lambda_F+L\Psi^{-1}L^T)^{-1}L\Psi^{-1}$
+\subitem the matrix multiplication is quick
+\end{itemize}
+The challenge here is make $\Omega$ symmetric and positive definite. The symmetric and positive definite properties of $\hat{\Psi}^{-1}$ can fit this requirement. Glasso and other popular work can achieve this when the true $\Psi^{-1}$ is truly sparse.
+
 \section{4. Output}
 The output here is just the estimation precision matrix from different methods under different scenarios.
 
